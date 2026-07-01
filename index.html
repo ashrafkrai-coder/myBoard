@@ -791,6 +791,10 @@
       return `${supabaseUrl}/rest/v1/${supabaseTable}${query}`;
     }
 
+    function supabaseDeleteFilter(id) {
+      return `or=(id.eq.${encodeURIComponent(id)},payload->>id.eq.${encodeURIComponent(id)})`;
+    }
+
     function setSyncNote(message) {
       syncNote.textContent = message;
     }
@@ -868,14 +872,14 @@
     async function deleteRecordFromSupabase(id) {
       if (!getSupabaseKey() || !navigator.onLine) return;
 
-      const filter = `?or=(id.eq.${encodeURIComponent(id)},payload->>id=eq.${encodeURIComponent(id)})`;
+      const filter = `?${supabaseDeleteFilter(id)}`;
       const response = await fetch(supabaseEndpoint(filter), {
         method: "DELETE",
         headers: supabaseHeaders()
       });
       if (!response.ok) throw new Error(await response.text());
 
-      const verifyResponse = await fetch(supabaseEndpoint(`?select=id&or=(id.eq.${encodeURIComponent(id)},payload->>id=eq.${encodeURIComponent(id)})`), {
+      const verifyResponse = await fetch(supabaseEndpoint(`?select=id&${supabaseDeleteFilter(id)}`), {
         headers: supabaseHeaders()
       });
       if (!verifyResponse.ok) throw new Error(await verifyResponse.text());
