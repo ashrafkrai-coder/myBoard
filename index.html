@@ -1,0 +1,1337 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#245b4f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Rekod Guru">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Dashboard Rekod Aktiviti Guru</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+  <style>
+    :root {
+      --bg: #eef3f5;
+      --panel: #ffffff;
+      --ink: #18211f;
+      --muted: #63706c;
+      --line: #dce4e1;
+      --green: #245b4f;
+      --green-dark: #163f38;
+      --green-2: #e4f0ed;
+      --gold: #f2c94c;
+      --red: #b94848;
+      --blue: #3867a8;
+      --shadow: 0 18px 45px rgba(22, 35, 32, .12);
+      --soft-shadow: 0 8px 22px rgba(22, 35, 32, .08);
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, rgba(36, 91, 79, .14), rgba(242, 201, 76, .11) 42%, transparent 78%), var(--bg);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    .app {
+      width: min(1220px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: clamp(14px, 2.6vw, 28px) 0 36px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 18px;
+      padding: clamp(18px, 3vw, 30px);
+      border: 1px solid rgba(255, 255, 255, .7);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(255, 255, 255, .78));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.65rem, 3vw, 2.45rem);
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .sub {
+      margin: 7px 0 0;
+      color: var(--muted);
+      max-width: 720px;
+      font-size: .98rem;
+      line-height: 1.65;
+    }
+
+    .header-actions, .actions, .record-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .header-actions { justify-content: flex-end; }
+
+    .install-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      background: var(--green-2);
+      border: 1px solid #c7ddd7;
+      border-radius: 999px;
+      padding: 9px 12px;
+      font-weight: 600;
+      font-size: .9rem;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    #installBtn {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      #installBtn {
+        display: inline-flex;
+      }
+    }
+
+    #installBtn[hidden] { display: none; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .sync-panel {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+
+    .sync-panel label {
+      margin: 0;
+    }
+
+    .sync-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .sync-status-icon {
+      width: 34px;
+      height: 34px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #eef1f0;
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 700;
+      transition: background .2s ease, color .2s ease, transform .2s ease;
+    }
+
+    .sync-status-icon.success {
+      background: #e8f6ee;
+      color: var(--green);
+    }
+
+    .sync-status-icon.error {
+      background: #fdeeee;
+      color: var(--red);
+    }
+
+    .sync-status-icon.syncing {
+      background: #fff6df;
+      color: #a46e00;
+      animation: sync-spin 1s linear infinite;
+    }
+
+    @keyframes sync-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .stat, .panel, .record-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--soft-shadow);
+    }
+
+    .stat {
+      position: relative;
+      overflow: hidden;
+      padding: 12px;
+      min-height: 86px;
+    }
+
+    .stat::after {
+      content: "";
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(36, 91, 79, .1);
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: .74rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 1.55rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(320px, 410px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel { padding: clamp(14px, 2vw, 18px); }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    form {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: .88rem;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 11px 12px;
+      outline: none;
+      font-size: .95rem;
+      line-height: 1.35;
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    input[type="file"] {
+      padding: 9px 12px;
+      background: #fbfdfc;
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(36, 91, 79, .14);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 8px;
+      padding: 11px 13px;
+      font-weight: 700;
+      font-size: .94rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(36, 91, 79, .18);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    button.secondary {
+      background: #edf1f0;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    button.danger {
+      background: #fff0f0;
+      color: var(--red);
+      border: 1px solid #f0caca;
+      box-shadow: none;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(190px, 1fr) minmax(145px, 170px) minmax(120px, 140px) auto;
+      gap: 8px;
+      margin-bottom: 12px;
+      align-items: center;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .record-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      min-width: 0;
+    }
+
+    td:last-child {
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      min-width: 48px;
+      height: 36px;
+      padding: 0 12px;
+      display: inline-grid;
+      place-items: center;
+      font-size: .85rem;
+      font-weight: 700;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
+    .record-card-top,
+    .record-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      line-height: 1.45;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      background: #f9fbfa;
+    }
+
+    td {
+      font-size: .92rem;
+    }
+
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover td { background: #fbfdfc; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: .74rem;
+      font-weight: 700;
+      background: var(--green-2);
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .badge.taklimat { background: #eaf0fb; color: var(--blue); }
+    .badge.kursus { background: #fff5d6; color: #785b00; }
+    .badge.bengkel { background: #f2eafa; color: #694199; }
+
+    .empty {
+      padding: 30px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .icon-btn {
+      width: 54px;
+      height: 38px;
+      min-height: 38px;
+      padding: 0;
+      display: inline-grid;
+      place-items: center;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .file-note {
+      margin: -4px 0 0;
+      color: var(--muted);
+      font-size: .82rem;
+      line-height: 1.45;
+    }
+
+    .mobile-records {
+      display: none;
+      gap: 10px;
+    }
+
+    .record-card {
+      padding: 13px;
+    }
+
+    .record-card-top, .record-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .record-card h3 {
+      margin: 10px 0 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .record-card p {
+      margin: 0 0 5px;
+      color: var(--muted);
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    .record-card-footer {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%) translateY(80px);
+      background: #17211f;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: .25s ease;
+      box-shadow: var(--shadow);
+      z-index: 3;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .login-screen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      width: min(100%, 390px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .login-card h1 {
+      font-size: 1.45rem;
+      margin-bottom: 8px;
+    }
+
+    .login-card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .login-card form {
+      gap: 14px;
+    }
+
+    .app[hidden], .login-screen[hidden], .sync-panel[hidden] {
+      display: none;
+    }
+
+    @media (max-width: 920px) {
+      header, .main { grid-template-columns: 1fr; }
+      .header-actions { justify-content: flex-start; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .sync-panel { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      body { background: var(--bg); }
+      .app { width: min(100% - 14px, 1180px); padding-top: 8px; }
+      header { padding: 12px; margin-bottom: 12px; }
+      h1 { font-size: 1.45rem; }
+      .sub { font-size: .88rem; }
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .stat { min-height: 74px; padding: 10px; }
+      .stat strong { font-size: 1.24rem; margin-top: 4px; }
+      .stat span { font-size: .66rem; }
+      .row, .toolbar { grid-template-columns: 1fr; }
+      .install-status { width: fit-content; white-space: normal; }
+      .main { gap: 12px; }
+      .panel { padding: 10px; }
+      .panel h2 { margin-bottom: 10px; }
+      .actions button, .toolbar button { width: 100%; }
+      .sync-actions button { width: 100%; }
+      .table-wrap { display: none; }
+      .mobile-records { display: grid; gap: 8px; }
+      .record-card { padding: 10px; }
+      .toast { width: calc(100% - 24px); text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <section class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <h1>Log Masuk</h1>
+      <p>Masukkan akaun pentadbir untuk akses rekod aktiviti guru.</p>
+      <form id="loginForm">
+        <label>Nama Pengguna
+          <input id="loginUser" autocomplete="username" value="admin" required>
+        </label>
+        <label>Kata Laluan
+          <input id="loginPass" type="password" autocomplete="current-password" value="123456" required>
+        </label>
+        <button type="submit">Log Masuk</button>
+      </form>
+    </div>
+  </section>
+
+  <main class="app" id="appShell" hidden>
+    <header>
+      <div>
+        <h1>Dashboard Rekod Aktiviti Guru</h1>
+        <p class="sub">Rekod mesyuarat, taklimat, kursus dan bengkel yang dihadiri guru. Data disimpan dalam peranti ini dan boleh digunakan walaupun offline.</p>
+      </div>
+      <div class="header-actions">
+        <button class="secondary" id="logoutBtn" type="button">Log Keluar</button>
+        <button class="secondary" id="installBtn" type="button" hidden>Pasang App</button>
+        <div class="install-status" id="networkStatus"><span class="dot"></span><span>Online</span></div>
+      </div>
+    </header>
+
+    <section class="stats" aria-label="Ringkasan rekod">
+      <div class="stat"><span>Jumlah Rekod</span><strong id="totalCount">0</strong></div>
+      <div class="stat"><span>Mesyuarat</span><strong id="meetingCount">0</strong></div>
+      <div class="stat"><span>Taklimat</span><strong id="briefingCount">0</strong></div>
+      <div class="stat"><span>Kursus</span><strong id="courseCount">0</strong></div>
+      <div class="stat"><span>Bengkel</span><strong id="workshopCount">0</strong></div>
+    </section>
+
+    <section class="panel sync-panel" aria-label="Status Supabase" hidden>
+      <input id="supabaseKey" type="password" aria-label="Supabase Anon Key">
+      <div class="sync-actions">
+        <button class="secondary" id="saveKeyBtn" type="button">Simpan Key</button>
+        <button id="syncBtn" type="button">Sync Supabase</button>
+        <span id="syncStatusIcon" class="sync-status-icon" title="Status sinkronisasi" aria-label="Status sinkronisasi">↻</span>
+      </div>
+      <p class="file-note" id="syncNote">Project: hhckavzugsstooxanjyd. Data sync ke jadual teacher_activity_records.</p>
+    </section>
+
+    <section class="main">
+      <div class="panel">
+        <h2 id="formTitle">Tambah Rekod</h2>
+        <form id="recordForm">
+          <input type="hidden" id="recordId">
+          <input type="hidden" id="teacher">
+          <div class="row">
+            <label>Kategori
+              <select id="category" required>
+                <option value="Mesyuarat">Mesyuarat</option>
+                <option value="Taklimat">Taklimat</option>
+                <option value="Kursus">Kursus</option>
+                <option value="Bengkel">Bengkel</option>
+              </select>
+            </label>
+            <label>Tarikh
+              <input id="date" type="date" required>
+            </label>
+          </div>
+          <label>Tajuk / Program
+            <input id="title" required placeholder="Contoh: Mesyuarat Kurikulum Bil. 2">
+          </label>
+          <label>Tempat / Platform
+            <input id="place" placeholder="Bilik Mesyuarat / Google Meet">
+          </label>
+          <label>Catatan
+            <textarea id="notes" placeholder="Keputusan, tindakan susulan atau nombor rujukan sijil"></textarea>
+          </label>
+          <label>Upload Surat
+            <input id="letterFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,image/*,application/pdf">
+          </label>
+          <p class="file-note" id="letterNote">PDF, imej atau dokumen Word. Surat disimpan dalam peranti ini.</p>
+          <div class="actions">
+            <button type="submit">Simpan Rekod</button>
+            <button type="button" class="secondary" id="resetBtn">Kosongkan</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Senarai Rekod</h2>
+        <div class="toolbar">
+          <input id="search" placeholder="Cari nama, tajuk atau tempat">
+          <select id="filterCategory">
+            <option value="Semua">Semua kategori</option>
+            <option value="Mesyuarat">Mesyuarat</option>
+            <option value="Taklimat">Taklimat</option>
+            <option value="Kursus">Kursus</option>
+            <option value="Bengkel">Bengkel</option>
+          </select>
+          <select id="sortBy">
+            <option value="newest">Terbaru</option>
+            <option value="oldest">Terlama</option>
+          </select>
+          <button class="secondary" id="exportBtn" type="button">Eksport CSV</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tarikh</th>
+                <th>Kategori</th>
+                <th>Tajuk</th>
+                <th>Tempat</th>
+                <th>Tindakan</th>
+              </tr>
+            </thead>
+            <tbody id="recordsBody"></tbody>
+          </table>
+          <div class="empty" id="emptyState">Belum ada rekod. Tambah rekod pertama di sebelah kiri.</div>
+        </div>
+        <div class="mobile-records" id="mobileRecords"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const storeKey = "rekodAktivitiGuru";
+    const deletedStore = "rekodAktivitiGuruDeletedIds";
+    const supabaseKeyStore = "rekodAktivitiGuruSupabaseAnonKey";
+    const sessionStore = "rekodAktivitiGuruLoggedIn";
+    const loginUsername = "admin";
+    const loginPassword = "123456";
+    const supabaseUrl = "https://hhckavzugsstooxanjyd.supabase.co";
+    const defaultSupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoY2thdnp1Z3NzdG9veGFuanlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MDAzOTYsImV4cCI6MjA5ODE3NjM5Nn0.aDmptBpYcJZoyivWTq1j482BQgvpHhYAk1N-diHZ7tg";
+    const supabaseTable = "teacher_activity_records";
+    const loginScreen = document.querySelector("#loginScreen");
+    const appShell = document.querySelector("#appShell");
+    const loginForm = document.querySelector("#loginForm");
+    const logoutBtn = document.querySelector("#logoutBtn");
+    const form = document.querySelector("#recordForm");
+    const fields = {
+      id: document.querySelector("#recordId"),
+      teacher: document.querySelector("#teacher"),
+      category: document.querySelector("#category"),
+      date: document.querySelector("#date"),
+      title: document.querySelector("#title"),
+      place: document.querySelector("#place"),
+      notes: document.querySelector("#notes"),
+      letterFile: document.querySelector("#letterFile")
+    };
+    const body = document.querySelector("#recordsBody");
+    const mobileRecords = document.querySelector("#mobileRecords");
+    const emptyState = document.querySelector("#emptyState");
+    const search = document.querySelector("#search");
+    const filterCategory = document.querySelector("#filterCategory");
+    const sortBy = document.querySelector("#sortBy");
+    const toast = document.querySelector("#toast");
+    const installBtn = document.querySelector("#installBtn");
+    const letterNote = document.querySelector("#letterNote");
+    const supabaseKey = document.querySelector("#supabaseKey");
+    const syncNote = document.querySelector("#syncNote");
+    const syncStatusIcon = document.querySelector("#syncStatusIcon");
+    let deferredInstallPrompt = null;
+
+    function isMobileViewport() {
+      return window.matchMedia("(max-width: 768px)").matches;
+    }
+
+    function isStandaloneMode() {
+      return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    }
+
+    function updateInstallButton() {
+      if (isMobileViewport() && !isStandaloneMode()) {
+        installBtn.hidden = false;
+      } else {
+        installBtn.hidden = true;
+      }
+    }
+    let realtimeSocket = null;
+    let realtimeHeartbeat = null;
+    let realtimeRef = 1;
+    let records = loadRecords();
+    let deletedIds = loadDeletedIds();
+
+    fields.date.valueAsDate = new Date();
+    supabaseKey.value = localStorage.getItem(supabaseKeyStore) || defaultSupabaseKey;
+
+    function loadRecords() {
+      try {
+        return JSON.parse(localStorage.getItem(storeKey)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function loadDeletedIds() {
+      try {
+        return JSON.parse(localStorage.getItem(deletedStore)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveRecords() {
+      localStorage.setItem(storeKey, JSON.stringify(records));
+    }
+
+    function saveDeletedIds() {
+      localStorage.setItem(deletedStore, JSON.stringify(deletedIds));
+    }
+
+    function getSupabaseKey() {
+      return supabaseKey.value.trim();
+    }
+
+    function supabaseHeaders(extra = {}) {
+      const key = getSupabaseKey();
+      return {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+        ...extra
+      };
+    }
+
+    function supabaseEndpoint(query = "") {
+      return `${supabaseUrl}/rest/v1/${supabaseTable}${query}`;
+    }
+
+    function setSyncNote(message) {
+      syncNote.textContent = message;
+    }
+
+    function setSyncStatus(state) {
+      syncStatusIcon.classList.remove("success", "error", "syncing");
+      syncStatusIcon.textContent = "↻";
+
+      if (state === "success") {
+        syncStatusIcon.classList.add("success");
+        syncStatusIcon.title = "Sinkronisasi berjaya";
+      } else if (state === "error") {
+        syncStatusIcon.classList.add("error");
+        syncStatusIcon.title = "Sinkronisasi gagal";
+      } else if (state === "syncing") {
+        syncStatusIcon.classList.add("syncing");
+        syncStatusIcon.title = "Sedang disegerakkan";
+      } else {
+        syncStatusIcon.title = "Status sinkronisasi";
+      }
+    }
+
+    function isLoggedIn() {
+      return sessionStorage.getItem(sessionStore) === "1";
+    }
+
+    function setAppAccess(allowed) {
+      loginScreen.hidden = allowed;
+      appShell.hidden = !allowed;
+      if (allowed) {
+        renderRecords();
+        startRealtime();
+        if (getSupabaseKey() && navigator.onLine) syncWithSupabase();
+      } else {
+        stopRealtime();
+      }
+    }
+
+    loginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = document.querySelector("#loginUser").value.trim();
+      const pass = document.querySelector("#loginPass").value;
+      if (user !== loginUsername || pass !== loginPassword) {
+        showToast("Nama pengguna atau kata laluan salah");
+        return;
+      }
+      sessionStorage.setItem(sessionStore, "1");
+      loginForm.reset();
+      setAppAccess(true);
+      showToast("Log masuk berjaya");
+    });
+
+    logoutBtn.addEventListener("click", () => {
+      sessionStorage.removeItem(sessionStore);
+      setAppAccess(false);
+      showToast("Log keluar berjaya");
+    });
+
+    async function syncRecordToSupabase(record) {
+      if (!getSupabaseKey() || !navigator.onLine) return;
+
+      const response = await fetch(supabaseEndpoint("?on_conflict=id"), {
+        method: "POST",
+        headers: supabaseHeaders({ Prefer: "resolution=merge-duplicates" }),
+        body: JSON.stringify({
+          id: record.id,
+          payload: record,
+          updated_at: record.updatedAt || new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+    }
+
+    async function deleteRecordFromSupabase(id) {
+      if (!getSupabaseKey() || !navigator.onLine) return;
+
+      const filter = `?or=(id.eq.${encodeURIComponent(id)},payload->>id=eq.${encodeURIComponent(id)})`;
+      const response = await fetch(supabaseEndpoint(filter), {
+        method: "DELETE",
+        headers: supabaseHeaders()
+      });
+      if (!response.ok) throw new Error(await response.text());
+
+      const verifyResponse = await fetch(supabaseEndpoint(`?select=id&or=(id.eq.${encodeURIComponent(id)},payload->>id=eq.${encodeURIComponent(id)})`), {
+        headers: supabaseHeaders()
+      });
+      if (!verifyResponse.ok) throw new Error(await verifyResponse.text());
+
+      const remaining = await verifyResponse.json();
+      if (remaining.length > 0) {
+        throw new Error(`Rekod dengan id ${id} masih wujud di Supabase selepas delete.`);
+      }
+    }
+
+    async function syncWithSupabase(pushLocal = true) {
+      if (!getSupabaseKey()) {
+        setSyncStatus("error");
+        showToast("Supabase key belum tersedia");
+        return;
+      }
+
+      if (!navigator.onLine) {
+        setSyncStatus("error");
+        showToast("Peranti sedang offline");
+        return;
+      }
+
+      setSyncStatus("syncing");
+      setSyncNote("Sedang sync dengan Supabase...");
+
+      try {
+        if (pushLocal) {
+          const idsToDelete = [...deletedIds];
+          for (const id of idsToDelete) {
+            try {
+              await deleteRecordFromSupabase(id);
+              deletedIds = deletedIds.filter((deleted) => deleted !== id);
+            } catch (error) {
+              console.error(error);
+              setSyncNote(`Padam rekod ${id} di Supabase gagal. Ia akan dicuba semula kemudian.`);
+            }
+          }
+          saveDeletedIds();
+
+          for (const record of records) {
+            await syncRecordToSupabase(record);
+          }
+        }
+
+        const response = await fetch(supabaseEndpoint("?select=id,payload,updated_at"), {
+          headers: supabaseHeaders()
+        });
+
+        if (!response.ok) throw new Error(await response.text());
+
+        const remoteRows = await response.json();
+        const merged = new Map(records.map((record) => [record.id, record]));
+        const deletedSet = new Set(deletedIds);
+
+        remoteRows.forEach((row) => {
+          const remoteId = row.payload?.id || row.id;
+          if (!remoteId || deletedSet.has(remoteId)) return;
+          const remotePayload = row.payload ? { ...row.payload, id: remoteId } : { id: remoteId };
+          const local = merged.get(remoteId);
+          const localTime = local?.updatedAt || "";
+          const remoteTime = remotePayload.updatedAt || row.updated_at || "";
+          if (!local || remoteTime > localTime) merged.set(remoteId, remotePayload);
+        });
+
+        records = Array.from(merged.values()).filter((record) => !deletedSet.has(record.id));
+        saveRecords();
+        renderRecords();
+        setSyncNote(`Sync selesai. ${records.length} rekod tersedia.`);
+        setSyncStatus("success");
+        showToast("Sync Supabase selesai");
+      } catch (error) {
+        console.error(error);
+        setSyncNote(`Sync gagal: ${error.message || "Semak anon key, RLS policy dan jadual Supabase."}`);
+        setSyncStatus("error");
+        showToast("Sync Supabase gagal");
+      }
+    }
+
+    function startRealtime() {
+      if (realtimeSocket || !getSupabaseKey() || !navigator.onLine) return;
+
+      const realtimeUrl = `${supabaseUrl.replace("https://", "wss://")}/realtime/v1/websocket?apikey=${encodeURIComponent(getSupabaseKey())}&vsn=1.0.0`;
+      realtimeSocket = new WebSocket(realtimeUrl);
+
+      realtimeSocket.addEventListener("open", () => {
+        sendRealtime("realtime:public:teacher_activity_records", "phx_join", {
+          config: {
+            broadcast: { self: false },
+            presence: { key: "" },
+            postgres_changes: [{ event: "*", schema: "public", table: supabaseTable }]
+          }
+        });
+        realtimeHeartbeat = setInterval(() => sendRealtime("phoenix", "heartbeat", {}), 25000);
+        setSyncNote("Realtime aktif. Data disambungkan ke Supabase.");
+      });
+
+      realtimeSocket.addEventListener("message", (event) => {
+        const message = JSON.parse(event.data);
+        if (message.event === "postgres_changes") {
+          syncWithSupabase(false);
+        }
+      });
+
+      realtimeSocket.addEventListener("close", (event) => {
+        if (event.currentTarget !== realtimeSocket) return;
+        stopRealtime();
+        if (isLoggedIn() && navigator.onLine) {
+          setTimeout(startRealtime, 3000);
+        }
+      });
+
+      realtimeSocket.addEventListener("error", () => {
+        setSyncNote("Realtime terganggu. Sync manual masih boleh digunakan.");
+      });
+    }
+
+    function sendRealtime(topic, event, payload) {
+      if (!realtimeSocket || realtimeSocket.readyState !== WebSocket.OPEN) return;
+      realtimeSocket.send(JSON.stringify({ topic, event, payload, ref: String(realtimeRef++) }));
+    }
+
+    function stopRealtime() {
+      if (realtimeHeartbeat) clearInterval(realtimeHeartbeat);
+      realtimeHeartbeat = null;
+      if (realtimeSocket) {
+        const socket = realtimeSocket;
+        realtimeSocket = null;
+        socket.close();
+      }
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function normalize(text) {
+      return String(text || "").toLowerCase().trim();
+    }
+
+    function getVisibleRecords() {
+      const term = normalize(search.value);
+      const category = filterCategory.value;
+      const visible = records.filter((record) => {
+        const matchesCategory = category === "Semua" || record.category === category;
+        const haystack = normalize([record.teacher, record.title, record.place, record.notes].join(" "));
+        return matchesCategory && haystack.includes(term);
+      });
+
+      return visible.sort((a, b) => {
+        if (sortBy.value === "oldest") return a.date.localeCompare(b.date);
+        return b.date.localeCompare(a.date);
+      });
+    }
+
+    function formatDate(dateValue) {
+      if (!dateValue) return "-";
+      return new Intl.DateTimeFormat("ms-MY", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(dateValue));
+    }
+
+    function renderStats() {
+      document.querySelector("#totalCount").textContent = records.length;
+      document.querySelector("#meetingCount").textContent = records.filter((r) => r.category === "Mesyuarat").length;
+      document.querySelector("#briefingCount").textContent = records.filter((r) => r.category === "Taklimat").length;
+      document.querySelector("#courseCount").textContent = records.filter((r) => r.category === "Kursus").length;
+      document.querySelector("#workshopCount").textContent = records.filter((r) => r.category === "Bengkel").length;
+    }
+
+    function renderRecords() {
+      const visible = getVisibleRecords();
+      body.innerHTML = visible.map((record) => `
+        <tr>
+          <td>${formatDate(record.date)}</td>
+          <td><span class="badge ${record.category.toLowerCase()}">${record.category}</span></td>
+          <td>${escapeHtml(record.title)}${record.notes ? `<br><small>${escapeHtml(record.notes)}</small>` : ""}</td>
+          <td>${escapeHtml(record.place || "-")}</td>
+          <td>
+            <div class="record-actions">
+              ${record.letter ? `<button class="icon-btn secondary" title="Buka surat" onclick="openLetter('${record.id}')">Surat</button>` : ""}
+              <button class="icon-btn secondary" title="Edit rekod" onclick="editRecord('${record.id}')">Edit</button>
+              <button class="icon-btn danger" title="Padam rekod" onclick="deleteRecord('${record.id}')">X</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      mobileRecords.innerHTML = visible.map((record) => `
+        <article class="record-card">
+          <div class="record-card-top">
+            <span class="badge ${record.category.toLowerCase()}">${record.category}</span>
+            <strong>${formatDate(record.date)}</strong>
+          </div>
+          <h3>${escapeHtml(record.title)}</h3>
+          <p>${escapeHtml(record.place || "-")}</p>
+          ${record.letter ? `<p>Surat: ${escapeHtml(record.letter.name)}</p>` : ""}
+          ${record.notes ? `<p>${escapeHtml(record.notes)}</p>` : ""}
+          <div class="record-card-footer">
+            <span>${record.updatedAt ? "Dikemas kini" : "Rekod"}</span>
+            <div class="record-actions">
+              ${record.letter ? `<button class="icon-btn secondary" title="Buka surat" onclick="openLetter('${record.id}')">Surat</button>` : ""}
+              <button class="icon-btn secondary" title="Edit rekod" onclick="editRecord('${record.id}')">Edit</button>
+              <button class="icon-btn danger" title="Padam rekod" onclick="deleteRecord('${record.id}')">X</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+
+      emptyState.style.display = visible.length ? "none" : "block";
+      renderStats();
+    }
+
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+      })[char]);
+    }
+
+    function newId() {
+      if (crypto.randomUUID) return crypto.randomUUID();
+      return `rekod-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          name: file.name,
+          type: file.type || "application/octet-stream",
+          size: file.size,
+          dataUrl: reader.result
+        });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function resetForm() {
+      form.reset();
+      fields.id.value = "";
+      fields.date.valueAsDate = new Date();
+      letterNote.textContent = "PDF, imej atau dokumen Word. Surat disimpan dalam peranti ini.";
+      document.querySelector("#formTitle").textContent = "Tambah Rekod";
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const id = fields.id.value || newId();
+      const existingRecord = records.find((item) => item.id === id);
+      const uploadedFile = fields.letterFile.files[0];
+      let letter = existingRecord?.letter || null;
+
+      if (uploadedFile) {
+        if (uploadedFile.size > 4 * 1024 * 1024) {
+          showToast("Saiz surat maksimum ialah 4MB");
+          return;
+        }
+        letter = await fileToDataUrl(uploadedFile);
+      }
+
+      const record = {
+        id,
+        teacher: "",
+        category: fields.category.value,
+        date: fields.date.value,
+        title: fields.title.value.trim(),
+        place: fields.place.value.trim(),
+        notes: fields.notes.value.trim(),
+        letter,
+        updatedAt: new Date().toISOString()
+      };
+
+      const existingIndex = records.findIndex((item) => item.id === id);
+      if (existingIndex >= 0) records[existingIndex] = record;
+      else records.push(record);
+
+      saveRecords();
+      syncRecordToSupabase(record).catch((error) => {
+        console.error(error);
+        setSyncNote("Rekod disimpan offline. Sync Supabase gagal.");
+      });
+      resetForm();
+      showToast("Rekod berjaya disimpan");
+      renderRecords();
+    });
+
+    document.querySelector("#resetBtn").addEventListener("click", () => {
+      resetForm();
+    });
+
+    window.editRecord = function editRecord(id) {
+      const record = records.find((item) => item.id === id);
+      if (!record) return;
+      fields.id.value = record.id;
+      fields.category.value = record.category;
+      fields.date.value = record.date;
+      fields.title.value = record.title;
+      fields.place.value = record.place;
+      fields.notes.value = record.notes;
+      fields.letterFile.value = "";
+      letterNote.textContent = record.letter ? `Surat sedia ada: ${record.letter.name}. Pilih fail baru untuk gantikan.` : "PDF, imej atau dokumen Word. Surat disimpan dalam peranti ini.";
+      document.querySelector("#formTitle").textContent = "Edit Rekod";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.openLetter = function openLetter(id) {
+      const record = records.find((item) => item.id === id);
+      if (!record?.letter?.dataUrl) {
+        showToast("Tiada surat untuk rekod ini");
+        return;
+      }
+
+      const link = document.createElement("a");
+      link.href = record.letter.dataUrl;
+      link.target = "_blank";
+      link.download = record.letter.name || "surat";
+      link.click();
+    };
+
+    window.deleteRecord = async function deleteRecord(id) {
+      if (!confirm("Padam rekod ini?")) return;
+      records = records.filter((item) => item.id !== id);
+      if (!deletedIds.includes(id)) {
+        deletedIds.push(id);
+        saveDeletedIds();
+      }
+      saveRecords();
+      try {
+        await deleteRecordFromSupabase(id);
+      } catch (error) {
+        console.error(error);
+        setSyncNote("Rekod dipadam di peranti. Padam di Supabase gagal.");
+      }
+      showToast("Rekod dipadam");
+      renderRecords();
+    };
+
+    document.querySelector("#exportBtn").addEventListener("click", () => {
+      const visible = getVisibleRecords();
+      if (!visible.length) {
+        showToast("Tiada rekod untuk dieksport");
+        return;
+      }
+
+      const header = ["Tarikh", "Kategori", "Tajuk", "Tempat", "Catatan", "Surat"];
+      const rows = visible.map((record) => [record.date, record.category, record.title, record.place, record.notes, record.letter?.name || ""]);
+      const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `rekod-aktiviti-guru-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    function csvCell(value) {
+      return `"${String(value || "").replace(/"/g, '""')}"`;
+    }
+
+    [search, filterCategory, sortBy].forEach((control) => control.addEventListener("input", renderRecords));
+
+    document.querySelector("#saveKeyBtn").addEventListener("click", () => {
+      localStorage.setItem(supabaseKeyStore, getSupabaseKey());
+      setSyncNote("Supabase anon key disimpan dalam peranti ini.");
+      setSyncStatus("success");
+      showToast("Supabase key disimpan");
+    });
+
+    document.querySelector("#syncBtn").addEventListener("click", syncWithSupabase);
+
+    function updateNetworkStatus() {
+      const status = document.querySelector("#networkStatus");
+      status.querySelector("span:last-child").textContent = navigator.onLine ? "Online" : "Offline";
+      status.style.color = navigator.onLine ? "var(--green)" : "var(--red)";
+    }
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      updateInstallButton();
+      installBtn.hidden = false;
+    });
+
+    installBtn.addEventListener("click", async () => {
+      if (!deferredInstallPrompt) {
+        if (isMobileViewport()) {
+          showToast("Buka menu browser lalu pilih 'Pasang aplikasi' atau 'Add to Home Screen'");
+        } else {
+          showToast("Gunakan menu browser untuk pasang app ini");
+        }
+        return;
+      }
+
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      updateInstallButton();
+    });
+
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPrompt = null;
+      updateInstallButton();
+      installBtn.hidden = true;
+      showToast("App berjaya dipasang");
+    });
+
+    window.addEventListener("online", () => {
+      updateNetworkStatus();
+      if (isLoggedIn()) {
+        startRealtime();
+        syncWithSupabase();
+      }
+    });
+    window.addEventListener("resize", updateInstallButton);
+    window.addEventListener("offline", () => {
+      updateNetworkStatus();
+      stopRealtime();
+    });
+    updateNetworkStatus();
+    setSyncStatus("idle");
+    updateInstallButton();
+    setAppAccess(isLoggedIn());
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").then((registration) => {
+          if (!registration) return;
+
+          if (registration.waiting) {
+            promptSWUpdate(registration);
+          }
+
+          registration.addEventListener("updatefound", () => {
+            const newWorker = registration.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                promptSWUpdate(registration);
+              }
+            });
+          });
+        });
+      });
+    }
+
+    function promptSWUpdate(registration) {
+      if (confirm("Terdapat versi baru aplikasi. Muat semula untuk gunakan versi terbaru?")) {
+        registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+    }
+  </script>
+</body>
+</html>
