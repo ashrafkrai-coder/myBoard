@@ -524,6 +524,23 @@
       gap: 14px;
     }
 
+    .auth-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .auth-toggle button {
+      flex: 1;
+      font-size: .85rem;
+      min-height: 38px;
+    }
+
+    .auth-toggle button.active {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #fff;
+    }
+
     .app[hidden], .login-screen[hidden], .sync-panel[hidden] {
       display: none;
     }
@@ -563,16 +580,23 @@
 <body>
   <section class="login-screen" id="loginScreen">
     <div class="login-card">
-      <h1>Log Masuk</h1>
-      <p>Masukkan akaun pentadbir untuk akses rekod aktiviti guru.</p>
+      <h1 id="authTitle">Log Masuk</h1>
+      <p id="authDesc">Masukkan email dan kata laluan untuk akses rekod aktiviti guru.</p>
+      <div class="auth-toggle">
+        <button type="button" id="showLogin" class="active">Log Masuk</button>
+        <button type="button" id="showRegister">Daftar</button>
+      </div>
       <form id="loginForm">
-        <label>Nama Pengguna
-          <input id="loginUser" autocomplete="username" value="admin" required>
+        <label id="loginEmailLabel" hidden>Email
+          <input id="loginEmail" type="email" autocomplete="email" required>
+        </label>
+        <label>Nama Penuh
+          <input id="loginName" autocomplete="name" required>
         </label>
         <label>Kata Laluan
-          <input id="loginPass" type="password" autocomplete="current-password" value="123456" required>
+          <input id="loginPass" type="password" autocomplete="current-password" required>
         </label>
-        <button type="submit">Log Masuk</button>
+        <button type="submit" id="loginSubmitBtn">Log Masuk</button>
       </form>
     </div>
   </section>
@@ -690,9 +714,7 @@
     const storeKey = "rekodAktivitiGuru";
     const deletedStore = "rekodAktivitiGuruDeletedIds";
     const supabaseKeyStore = "rekodAktivitiGuruSupabaseAnonKey";
-    const sessionStore = "rekodAktivitiGuruLoggedIn";
-    const loginUsername = "admin";
-    const loginPassword = "123456";
+    const sessionStore = "rekodAktivitiGuruSession";
     const supabaseUrl = "https://hhckavzugsstooxanjyd.supabase.co";
     const defaultSupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhoY2thdnp1Z3NzdG9veGFuanlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2MDAzOTYsImV4cCI6MjA5ODE3NjM5Nn0.aDmptBpYcJZoyivWTq1j482BQgvpHhYAk1N-diHZ7tg";
     const supabaseTable = "teacher_activity_records";
@@ -700,6 +722,12 @@
     const appShell = document.querySelector("#appShell");
     const loginForm = document.querySelector("#loginForm");
     const logoutBtn = document.querySelector("#logoutBtn");
+    const showLoginBtn = document.querySelector("#showLogin");
+    const showRegisterBtn = document.querySelector("#showRegister");
+    const authTitle = document.querySelector("#authTitle");
+    const authDesc = document.querySelector("#authDesc");
+    const loginEmailLabel = document.querySelector("#loginEmailLabel");
+    const loginSubmitBtn = document.querySelector("#loginSubmitBtn");
     const form = document.querySelector("#recordForm");
     const fields = {
       id: document.querySelector("#recordId"),
@@ -724,6 +752,8 @@
     const syncNote = document.querySelector("#syncNote");
     const syncStatusIcon = document.querySelector("#syncStatusIcon");
     let deferredInstallPrompt = null;
+    let currentUser = null;
+    let authMode = "login";
 
     function isMobileViewport() {
       return window.matchMedia("(max-width: 768px)").matches;
@@ -740,6 +770,7 @@
         installBtn.hidden = true;
       }
     }
+
     let realtimeSocket = null;
     let realtimeHeartbeat = null;
     let realtimeRef = 1;
@@ -777,18 +808,48 @@
       return supabaseKey.value.trim();
     }
 
+    function getSession() {
+      try {
+        return JSON.parse(localStorage.getItem(sessionStore)) || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function saveSession(session) {
+      localStorage.setItem(sessionStore, JSON.stringify(session));
+    }
+
+    function clearSession() {
+      localStorage.removeItem(sessionStore);
+      currentUser = null;
+    }
+
+    function getAccessToken() {
+      const session = getSession();
+      return session?.access_token || null;
+    }
+
     function supabaseHeaders(extra = {}) {
       const key = getSupabaseKey();
-      return {
+      const token = getAccessToken();
+      const headers = {
         apikey: key,
-        Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
         ...extra
       };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      return headers;
     }
 
     function supabaseEndpoint(query = "") {
       return `${supabaseUrl}/rest/v1/${supabaseTable}${query}`;
+    }
+
+    function supabaseAuthEndpoint(path = "") {
+      return `${supabaseUrl}/auth/v1/${path}`;
     }
 
     function supabaseDeleteFilter(id) {
@@ -818,7 +879,31 @@
     }
 
     function isLoggedIn() {
-      return sessionStorage.getItem(sessionStore) === "1";
+      return !!getAccessToken();
+    }
+
+    async function migrateLocalDataToSupabase() {
+      if (!records.length || !currentUser || !getSupabaseKey() || !navigator.onLine) return;
+
+      const shouldMigrate = confirm(`Ditemui ${records.length} rekod lama dalam peranti ini. Adakah anda mahu memindahkan rekod ini ke akaun "${currentUser.email}"?`);
+      if (!shouldMigrate) return;
+
+      setSyncStatus("syncing");
+      setSyncNote("Sedang memindahkan data lama...");
+
+      try {
+        for (const record of records) {
+          await syncRecordToSupabase(record);
+        }
+        showToast(`Berjaya memindahkan ${records.length} rekod ke akaun baharu`);
+        setSyncNote("Migrasi selesai. Data lama dipindahkan ke akaun baharu.");
+        setSyncStatus("success");
+      } catch (error) {
+        console.error(error);
+        setSyncNote("Migrasi gagal. Data lama kekal dalam peranti ini.");
+        setSyncStatus("error");
+        showToast("Migrasi gagal");
+      }
     }
 
     function setAppAccess(allowed) {
@@ -827,28 +912,145 @@
       if (allowed) {
         renderRecords();
         startRealtime();
-        if (getSupabaseKey() && navigator.onLine) syncWithSupabase();
+        if (getSupabaseKey() && navigator.onLine) {
+          syncWithSupabase().then(() => {
+            migrateLocalDataToSupabase();
+          });
+        } else {
+          migrateLocalDataToSupabase();
+        }
       } else {
         stopRealtime();
       }
     }
 
-    loginForm.addEventListener("submit", (event) => {
+    async function supabaseAuthRequest(path, options = {}) {
+      const response = await fetch(supabaseAuthEndpoint(path), {
+        ...options,
+        headers: {
+          apikey: getSupabaseKey(),
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || `Auth request failed: ${response.status}`);
+      }
+      return response;
+    }
+
+    async function signUp(email, password, fullName) {
+      const response = await supabaseAuthRequest("signup", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password,
+          data: { full_name: fullName }
+        })
+      });
+      return response.json();
+    }
+
+    async function signIn(email, password) {
+      const response = await supabaseAuthRequest("token?grant_type=password", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password
+        })
+      });
+      return response.json();
+    }
+
+    async function signOut() {
+      const session = getSession();
+      if (session?.access_token) {
+        try {
+          await supabaseAuthRequest("logout", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          });
+        } catch {
+          // ignore logout errors
+        }
+      }
+      clearSession();
+    }
+
+    function applyAuthMode(mode) {
+      authMode = mode;
+      if (mode === "login") {
+        authTitle.textContent = "Log Masuk";
+        authDesc.textContent = "Masukkan email dan kata laluan untuk akses rekod aktiviti guru.";
+        loginEmailLabel.hidden = true;
+        loginSubmitBtn.textContent = "Log Masuk";
+        showLoginBtn.classList.add("active");
+        showRegisterBtn.classList.remove("active");
+      } else {
+        authTitle.textContent = "Daftar Akaun Baru";
+        authDesc.textContent = "Daftar akaun baharu menggunakan email dan kata laluan.";
+        loginEmailLabel.hidden = false;
+        loginSubmitBtn.textContent = "Daftar";
+        showRegisterBtn.classList.add("active");
+        showLoginBtn.classList.remove("active");
+      }
+    }
+
+    showLoginBtn.addEventListener("click", () => applyAuthMode("login"));
+    showRegisterBtn.addEventListener("click", () => applyAuthMode("register"));
+
+    loginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const user = document.querySelector("#loginUser").value.trim();
+      const email = document.querySelector("#loginEmail").value.trim();
+      const name = document.querySelector("#loginName").value.trim();
       const pass = document.querySelector("#loginPass").value;
-      if (user !== loginUsername || pass !== loginPassword) {
-        showToast("Nama pengguna atau kata laluan salah");
+
+      if (!email || !name || !pass) {
+        showToast("Sila isi semua medan");
         return;
       }
-      sessionStorage.setItem(sessionStore, "1");
-      loginForm.reset();
-      setAppAccess(true);
-      showToast("Log masuk berjaya");
+
+      try {
+        if (authMode === "register") {
+          const result = await signUp(email, pass, name);
+          if (result.session) {
+            saveSession({
+              access_token: result.session.access_token,
+              refresh_token: result.session.refresh_token,
+              user: result.user
+            });
+            currentUser = result.user;
+            showToast("Pendaftaran berjaya");
+          } else if (result.user && !result.session) {
+            showToast("Akaun dicipta. Sila log masuk.");
+            applyAuthMode("login");
+            return;
+          }
+        } else {
+          const result = await signIn(email, pass);
+          if (result.session) {
+            saveSession({
+              access_token: result.session.access_token,
+              refresh_token: result.session.refresh_token,
+              user: result.user
+            });
+            currentUser = result.user;
+            showToast("Log masuk berjaya");
+          }
+        }
+        loginForm.reset();
+        setAppAccess(true);
+      } catch (error) {
+        console.error(error);
+        showToast(error.message || "Operasi gagal");
+      }
     });
 
-    logoutBtn.addEventListener("click", () => {
-      sessionStorage.removeItem(sessionStore);
+    logoutBtn.addEventListener("click", async () => {
+      await signOut();
       setAppAccess(false);
       showToast("Log keluar berjaya");
     });
@@ -856,14 +1058,17 @@
     async function syncRecordToSupabase(record) {
       if (!getSupabaseKey() || !navigator.onLine) return;
 
+      const payload = {
+        id: record.id,
+        payload: record,
+        user_id: currentUser?.id || null,
+        updated_at: record.updatedAt || new Date().toISOString()
+      };
+
       const response = await fetch(supabaseEndpoint("?on_conflict=id"), {
         method: "POST",
         headers: supabaseHeaders({ Prefer: "resolution=merge-duplicates" }),
-        body: JSON.stringify({
-          id: record.id,
-          payload: record,
-          updated_at: record.updatedAt || new Date().toISOString()
-        })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) throw new Error(await response.text());
@@ -903,6 +1108,12 @@
         return;
       }
 
+      if (!isLoggedIn()) {
+        setSyncStatus("error");
+        showToast("Sila log masuk untuk sync");
+        return;
+      }
+
       setSyncStatus("syncing");
       setSyncNote("Sedang sync dengan Supabase...");
 
@@ -925,7 +1136,7 @@
           }
         }
 
-        const response = await fetch(supabaseEndpoint("?select=id,payload,updated_at"), {
+        const response = await fetch(supabaseEndpoint("?select=id,payload,updated_at&user_id=eq." + encodeURIComponent(currentUser?.id || "")), {
           headers: supabaseHeaders()
         });
 
@@ -962,15 +1173,19 @@
     function startRealtime() {
       if (realtimeSocket || !getSupabaseKey() || !navigator.onLine) return;
 
+      const token = getAccessToken();
       const realtimeUrl = `${supabaseUrl.replace("https://", "wss://")}/realtime/v1/websocket?apikey=${encodeURIComponent(getSupabaseKey())}&vsn=1.0.0`;
       realtimeSocket = new WebSocket(realtimeUrl);
 
       realtimeSocket.addEventListener("open", () => {
+        const filter = currentUser?.id ? `user_id=eq.${encodeURIComponent(currentUser.id)}` : "";
         sendRealtime("realtime:public:teacher_activity_records", "phx_join", {
           config: {
             broadcast: { self: false },
             presence: { key: "" },
-            postgres_changes: [{ event: "*", schema: "public", table: supabaseTable }]
+            postgres_changes: [
+              { event: "*", schema: "public", table: supabaseTable, filter }
+            ]
           }
         });
         realtimeHeartbeat = setInterval(() => sendRealtime("phoenix", "heartbeat", {}), 25000);
@@ -1307,7 +1522,12 @@
     updateNetworkStatus();
     setSyncStatus("idle");
     updateInstallButton();
+    const session = getSession();
+    if (session?.user) {
+      currentUser = session.user;
+    }
     setAppAccess(isLoggedIn());
+    applyAuthMode("login");
 
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
