@@ -195,16 +195,26 @@
       min-height: 86px;
     }
 
-    .stat::after {
-      content: "";
+    .stat-icon {
       position: absolute;
-      right: 14px;
-      top: 14px;
-      width: 42px;
-      height: 42px;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      font-size: 1.25rem;
       background: rgba(36, 91, 79, .1);
+      color: var(--green);
     }
+
+    .stat-icon.total { background: rgba(36, 91, 79, .1); color: var(--green); }
+    .stat-icon.meeting { background: rgba(56, 103, 168, .1); color: var(--blue); }
+    .stat-icon.briefing { background: rgba(242, 201, 76, .12); color: #8a6d00; }
+    .stat-icon.course { background: rgba(105, 65, 153, .1); color: #694199; }
+    .stat-icon.workshop { background: rgba(185, 72, 72, .1); color: var(--red); }
 
     .stat span {
       color: var(--muted);
@@ -563,6 +573,7 @@
       .stat { min-height: 74px; padding: 10px; }
       .stat strong { font-size: 1.24rem; margin-top: 4px; }
       .stat span { font-size: .66rem; }
+      .stat-icon { width: 36px; height: 36px; font-size: 1rem; right: 8px; }
       .row, .toolbar { grid-template-columns: 1fr; }
       .install-status { width: fit-content; white-space: normal; }
       .main { gap: 12px; }
@@ -615,11 +626,11 @@
     </header>
 
     <section class="stats" aria-label="Ringkasan rekod">
-      <div class="stat"><span>Jumlah Rekod</span><strong id="totalCount">0</strong></div>
-      <div class="stat"><span>Mesyuarat</span><strong id="meetingCount">0</strong></div>
-      <div class="stat"><span>Taklimat</span><strong id="briefingCount">0</strong></div>
-      <div class="stat"><span>Kursus</span><strong id="courseCount">0</strong></div>
-      <div class="stat"><span>Bengkel</span><strong id="workshopCount">0</strong></div>
+      <div class="stat"><span>Jumlah Rekod</span><strong id="totalCount">0</strong><span class="stat-icon total" aria-hidden="true">📋</span></div>
+      <div class="stat"><span>Mesyuarat</span><strong id="meetingCount">0</strong><span class="stat-icon meeting" aria-hidden="true">👥</span></div>
+      <div class="stat"><span>Taklimat</span><strong id="briefingCount">0</strong><span class="stat-icon briefing" aria-hidden="true">📢</span></div>
+      <div class="stat"><span>Kursus</span><strong id="courseCount">0</strong><span class="stat-icon course" aria-hidden="true">📚</span></div>
+      <div class="stat"><span>Bengkel</span><strong id="workshopCount">0</strong><span class="stat-icon workshop" aria-hidden="true">🔧</span></div>
     </section>
 
     <section class="panel sync-panel" aria-label="Status Supabase" hidden>
