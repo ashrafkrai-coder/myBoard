@@ -658,11 +658,11 @@
         <button type="button" id="showRegister">Daftar</button>
       </div>
       <form id="loginForm">
-        <label id="loginEmailLabel" hidden>Email
+        <label id="loginEmailLabel">Email
           <input id="loginEmail" type="email" autocomplete="email" required>
         </label>
-        <label>Nama Penuh
-          <input id="loginName" autocomplete="name" required>
+        <label id="loginNameLabel" hidden>Nama Penuh
+          <input id="loginName" autocomplete="name">
         </label>
         <label>Kata Laluan
           <input id="loginPass" type="password" autocomplete="current-password" required>
@@ -676,7 +676,7 @@
     <header>
       <div>
         <h1>Dashboard Rekod Aktiviti Guru</h1>
-        <p class="sub">Rekod mesyuarat, taklimat, kursus dan bengkel yang dihadiri guru. Data disimpan dalam peranti ini dan boleh digunakan walaupun offline.</p>
+        <p class="sub">Rekod mesyuarat, taklimat, kursus dan bengkel yang dihadiri guru. Data disimpan dalam peranti ini, disegerakkan ke akaun anda apabila online, dan boleh digunakan walaupun offline.</p>
       </div>
       <div class="header-actions">
         <button class="secondary" id="logoutBtn" type="button">Log Keluar</button>
@@ -797,7 +797,10 @@
     const showRegisterBtn = document.querySelector("#showRegister");
     const authTitle = document.querySelector("#authTitle");
     const authDesc = document.querySelector("#authDesc");
-    const loginEmailLabel = document.querySelector("#loginEmailLabel");
+    const loginNameLabel = document.querySelector("#loginNameLabel");
+    const loginEmail = document.querySelector("#loginEmail");
+    const loginName = document.querySelector("#loginName");
+    const loginPass = document.querySelector("#loginPass");
     const loginSubmitBtn = document.querySelector("#loginSubmitBtn");
     const form = document.querySelector("#recordForm");
     const fields = {
@@ -1056,14 +1059,18 @@
       if (mode === "login") {
         authTitle.textContent = "Log Masuk";
         authDesc.textContent = "Masukkan email dan kata laluan untuk akses rekod aktiviti guru.";
-        loginEmailLabel.hidden = true;
+        loginNameLabel.hidden = true;
+        loginName.required = false;
+        loginPass.autocomplete = "current-password";
         loginSubmitBtn.textContent = "Log Masuk";
         showLoginBtn.classList.add("active");
         showRegisterBtn.classList.remove("active");
       } else {
         authTitle.textContent = "Daftar Akaun Baru";
         authDesc.textContent = "Daftar akaun baharu menggunakan email dan kata laluan.";
-        loginEmailLabel.hidden = false;
+        loginNameLabel.hidden = false;
+        loginName.required = true;
+        loginPass.autocomplete = "new-password";
         loginSubmitBtn.textContent = "Daftar";
         showRegisterBtn.classList.add("active");
         showLoginBtn.classList.remove("active");
@@ -1075,11 +1082,11 @@
 
     loginForm.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const email = document.querySelector("#loginEmail").value.trim();
-      const name = document.querySelector("#loginName").value.trim();
-      const pass = document.querySelector("#loginPass").value;
+      const email = loginEmail.value.trim();
+      const name = loginName.value.trim();
+      const pass = loginPass.value;
 
-      if (!email || !name || !pass) {
+      if (!email || !pass || (authMode === "register" && !name)) {
         showToast("Sila isi semua medan");
         return;
       }
@@ -1336,12 +1343,17 @@
       document.querySelector("#workshopCount").textContent = records.filter((r) => r.category === "Bengkel").length;
     }
 
+    const allowedCategories = ["Mesyuarat", "Taklimat", "Kursus", "Bengkel"];
+    function safeCategory(value) {
+      return allowedCategories.includes(value) ? value : "Mesyuarat";
+    }
+
     function renderRecords() {
       const visible = getVisibleRecords();
       body.innerHTML = visible.map((record) => `
         <tr>
           <td>${formatDate(record.date)}</td>
-          <td><span class="badge ${record.category.toLowerCase()}">${record.category}</span></td>
+          <td><span class="badge ${safeCategory(record.category).toLowerCase()}">${safeCategory(record.category)}</span></td>
           <td>${escapeHtml(record.title)}${record.notes ? `<br><small>${escapeHtml(record.notes)}</small>` : ""}</td>
           <td>${escapeHtml(record.place || "-")}</td>
           <td>
@@ -1357,7 +1369,7 @@
       mobileRecords.innerHTML = visible.map((record) => `
         <article class="record-card">
           <div class="record-card-top">
-            <span class="badge ${record.category.toLowerCase()}">${record.category}</span>
+            <span class="badge ${safeCategory(record.category).toLowerCase()}">${safeCategory(record.category)}</span>
             <strong>${formatDate(record.date)}</strong>
           </div>
           <h3>${escapeHtml(record.title)}</h3>

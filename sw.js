@@ -1,4 +1,4 @@
-const CACHE_NAME = "rekod-guru-pwa-v12";
+const CACHE_NAME = "rekod-guru-pwa-v13";
 const APP_SHELL = ["./", "./index.html", "./manifest.json", "./sw.js", "./icon-192.svg", "./icon-512.svg", "./supabase-schema.sql"];
 const API_PREFIX = "https://hhckavzugsstooxanjyd.supabase.co/";
 
